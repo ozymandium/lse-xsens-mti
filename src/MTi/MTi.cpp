@@ -195,7 +195,7 @@ bool Xsens::MTi::setSettings(outputMode mode, outputSettings settings, Scenario 
 
     if (!isMtiG()) {
         // not an MTi-G, remove all GPS related stuff
-        modeIn2Bytes &= 0x0FFF;
+        modeIn2Bytes &= 0x4007; //0x0FFF
         // CMT_OUTPUTMODE_POSITION = 0x001
         ROS_INFO("No GPS Position available : MTi only, %x", mDeviceID);
     }
@@ -218,6 +218,11 @@ bool Xsens::MTi::setSettings(outputMode mode, outputSettings settings, Scenario 
                                         | (!settings.enableRateOfTurn)<<5
                                         | (!settings.enableMagnetometer)<<6
                                         | settings.velocityModeNED<<31;
+
+    if (!isMtiG()) {
+        // not an MTi-G, remove all GPS related stuff
+        modeIn4Bytes &= 0x0000037F;
+    }
 
 
     byte = (modeIn4Bytes & 0xFF000000) >> 24;
