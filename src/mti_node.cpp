@@ -3,6 +3,7 @@
 * Software License Agreement (BSD License)
 *
 *  Copyright (c) 2010, ISR University of Coimbra.
+*  Copyright (c) 2011-2012, INRIA, CNRS, all rights reserved
 *  All rights reserved.
 *
 *  Redistribution and use in source and binary forms, with or without
@@ -33,85 +34,110 @@
 *  POSSIBILITY OF SUCH DAMAGE.
 *
 * Author: Gonçalo Cabrita on 08/11/2010
+*
+* Author: Nicolas Vignard on 2 MAY 2012
+* Notes: Add the ability to control the Mti-G
 *********************************************************************/
 #include "MTi/MTi.h"
-
 #include <ros/ros.h>
-#include <sensor_msgs/Imu.h>
 
+
+/**
+ * @brief
+ *
+ * @param argc
+ * @param argv
+ * @return int
+ */
 int main(int argc, char** argv)
 {
-	ros::init(argc, argv, "mti_node");
-	ros::NodeHandle n;
-	ros::NodeHandle pn("~");
-	
-	// Params
-	std::string portname;
-	int baudrate;
-	std::string frame_id;
-	pn.param<std::string>("port", portname, "/dev/ttyUSB0");
-	pn.param("baudrate", baudrate, 115200);
-	pn.param<std::string>("frame_id", frame_id, "/base_imu");
-	
-	Xsens::MTi * mti = new Xsens::MTi();
-	
-	if(!mti->openPort((char*)portname.c_str(), baudrate))
-	{
-		ROS_FATAL("MTi -- Unable to connect to the MTi.");
-		ROS_BREAK();
-	}
-	ROS_INFO("MTi -- Successfully connected to the MTi!");
-	
-	Xsens::MTi::outputMode outputMode;
-	outputMode.temperatureData = false;
-	outputMode.calibratedData = true;
-	outputMode.orientationData = true;
-	outputMode.auxiliaryData = false;
-	outputMode.positionData = false;
-	outputMode.velocityData = false;
-	outputMode.statusData = false;
-	outputMode.rawGPSData = false;
-	outputMode.rawInertialData = false;
-	
-	Xsens::MTi::outputSettings outputSettings;
-	outputSettings.timeStamp = false;
-	outputSettings.orientationMode = Xsens::Quaternion;
-	
-	if(!mti->setOutputModeAndSettings(outputMode, outputSettings, 1000))
-	{
-		ROS_FATAL("MTi -- Unable to set the output mode and settings.");
-		ROS_BREAK();
-	}
-	ROS_INFO("MTi -- Setup complete! Initiating data streaming...");
+    ros::init(argc, argv, "mti_node");
+    ros::NodeHandle n;
+    ros::NodeHandle pn("~");
 
-	ros::Publisher mti_pub = n.advertise<sensor_msgs::Imu>("imu/data", 10);
+    // Params
+    std::string portname;
+    int baudrate;
+    std::string frame_id;
+    pn.param<std::string>("port", portname, "/dev/ttyUSB0");
+    pn.param("baudrate", baudrate, 115200);
+    pn.param<std::string>("frame_id", frame_id, Xsens::IMU_FRAME_ID);
 
-	ros::Rate r(20);
-  	while(ros::ok())
-	{	
-		sensor_msgs::Imu mti_msg;
-		mti_msg.header.stamp = ros::Time::now();
-		mti_msg.header.frame_id = frame_id.c_str();
-		
-		mti_msg.orientation.x = mti->quaternion_x();
-		mti_msg.orientation.y = mti->quaternion_y();
-		mti_msg.orientation.z = mti->quaternion_z();
-		mti_msg.orientation.w = mti->quaternion_w();
-		
-		mti_msg.angular_velocity.x = mti->gyroscope_x();
-		mti_msg.angular_velocity.y = mti->gyroscope_y();
-		mti_msg.angular_velocity.z = mti->gyroscope_z();
-		
-		mti_msg.linear_acceleration.x = mti->accelerometer_x();
-		mti_msg.linear_acceleration.y = mti->accelerometer_y();
-		mti_msg.linear_acceleration.z = mti->accelerometer_z();
-		
-		mti_pub.publish(mti_msg);
-		
-		r.sleep();
-	}
-	
-  	return(0);
+    Xsens::MTi::outputMode outputMode;
+    pn.param<bool>("temperature", outputMode.temperatureData,false);
+    pn.param<bool>("calibrated", outputMode.calibratedData,true);
+    pn.param<bool>("orientation", outputMode.orientationData,true);
+    pn.param<bool>("auxiliary", outputMode.auxiliaryData,false);
+    pn.param<bool>("position", outputMode.positionData,false);
+    pn.param<bool>("velocity", outputMode.velocityData,false);
+    pn.param<bool>("status", outputMode.statusData,false);
+    pn.param<bool>("rawGPS", outputMode.rawGPSData,false);
+    pn.param<bool>("rawInertial", outputMode.rawInertialData,false);
+
+    Xsens::MTi::outputSettings outputSettings;
+    pn.param<bool>("timeStamp", outputSettings.timeStamp,false);
+    int orientationMode;
+    pn.param<int>("orientationMode", orientationMode,Xsens::Quaternion);
+    outputSettings.orientationMode = (Xsens::MTOrientationMode)orientationMode;
+    pn.param<bool>("enableAcceleration", outputSettings.enableAcceleration,false);
+    pn.param<bool>("enableRateOfTurn", outputSettings.enableRateOfTurn,false);
+    pn.param<bool>("enableMagnetometer", outputSettings.enableMagnetometer,false);
+    pn.param<bool>("velocityModeNED", outputSettings.velocityModeNED,false);
+
+    int scenarioAsInt;
+    pn.param<int>("scenario",scenarioAsInt,Xsens::Automotive);
+    Xsens::Scenario scenario = (Xsens::Scenario)scenarioAsInt;
+    double GPSLeverArm_X, GPSLeverArm_Y, GPSLeverArm_Z;
+    pn.param<double>("GPSLeverArm_X",GPSLeverArm_X,0.0);
+    pn.param<double>("GPSLeverArm_Y",GPSLeverArm_Y,0.0);//0.25
+    pn.param<double>("GPSLeverArm_Z",GPSLeverArm_Z,0.0);//0.70
+    Xsens::MTi::Position GPS_lever_arm;
+    GPS_lever_arm.x = GPSLeverArm_X;
+    GPS_lever_arm.y = GPSLeverArm_Y;
+    GPS_lever_arm.z = GPSLeverArm_Z;
+
+    Xsens::MTi * mti = new Xsens::MTi();
+
+    if(!mti->openPort((char*)portname.c_str(), baudrate))
+    {
+        ROS_FATAL("MTi -- Unable to connect to the MTi.");
+        ROS_BREAK();
+    }
+    ROS_INFO("MTi -- Successfully connected to the MTi!");
+
+
+    if(!mti->setSettings(outputMode, outputSettings, scenario, frame_id, GPS_lever_arm, 1000))
+    {
+        ROS_FATAL("MTi -- Unable to set the output mode and settings.");
+        ROS_BREAK();
+    }
+    ROS_INFO("MTi -- Setup complete! Initiating data streaming...");
+
+    ros::Publisher mti_pub = n.advertise<sensor_msgs::Imu>("imu/data", 10);
+    ros::Publisher navsat_pub = n.advertise<sensor_msgs::NavSatFix>("fix", 10);
+    ros::Publisher odomPub = n.advertise<nav_msgs::Odometry>("odom",10);
+
+    tf::TransformBroadcaster odom_broadcaster;
+    tf::TransformListener listener;
+
+    ros::Rate r(20);
+    while(ros::ok())
+    {
+        ros::Time now = ros::Time::now();
+        sensor_msgs::Imu imu_msg = mti->fillImuMessage(now);
+        mti_pub.publish(imu_msg);
+
+        sensor_msgs::NavSatFix nav_fix_msg = mti->fillNavFixMessage(now);
+        navsat_pub.publish(nav_fix_msg);
+
+        nav_msgs::Odometry odom_msg = mti->fillOdometryMessage(listener, odom_broadcaster, now);
+        odomPub.publish(odom_msg);
+
+        ros::spinOnce();
+        r.sleep();
+    }
+
+    return(0);
 }
 
 // EOF
