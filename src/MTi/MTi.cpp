@@ -177,6 +177,7 @@ bool Xsens::MTi::setSettings(outputMode mode, outputSettings settings, Scenario 
     unsigned char byte;
     unsigned short modeIn2Bytes = 0;
 
+    // Go into config mode, set our preferences and go back to measuring
     addMessageToQueue(GoToConfig, NULL, GoToConfigAck);
     addMessageToQueue(ReqDID,NULL,DeviceID);
     waitForQueueToFinish(timeout);
@@ -203,15 +204,13 @@ bool Xsens::MTi::setSettings(outputMode mode, outputSettings settings, Scenario 
         ROS_INFO("MTi-G detected");
 
 
-
     byte = (modeIn2Bytes & 0xFF00) >> 8;
     outputModeData.push_back(byte);
     byte = (modeIn2Bytes & 0xFF);
     outputModeData.push_back(byte);
 
+
     unsigned int modeIn4Bytes = 0;
-
-
     modeIn4Bytes = settings.timeStamp
             | settings.orientationMode<<2
                                         | (!settings.enableAcceleration)<<4
@@ -235,24 +234,22 @@ bool Xsens::MTi::setSettings(outputMode mode, outputSettings settings, Scenario 
     outputSettingsData.push_back(byte);
 
 
-
-    modeIn2Bytes = scenario;
-    byte = 0;
-    byte = (modeIn2Bytes & 0xFF00) >> 8;
-    mScenarioData.push_back(byte);
-    byte = (modeIn2Bytes & 0x00FF);
-    mScenarioData.push_back(byte);
-
-
-    // Go into config mode, set our preferences and go back to measuring
-    // this->addMessageToQueue(GoToConfig, NULL, GoToConfigAck);
     this->addMessageToQueue(SetOutputMode, &outputModeData, SetOutputModeAck);
     this->addMessageToQueue(SetOutputSettings, &outputSettingsData, SetOutputSettingsAck);
-    this->addMessageToQueue(SetCurrentScenario, &mScenarioData, SetCurrentScenarioAck);
-    this->addMessageToQueue(ReqAvailableScenarios, NULL, AvailableScenarios);
-    this->addMessageToQueue(ReqCurrentScenario, NULL, ReqCurrentScenarioAck);
+
     if(isMtiG())
     {
+        modeIn2Bytes = scenario;
+        byte = 0;
+        byte = (modeIn2Bytes & 0xFF00) >> 8;
+        mScenarioData.push_back(byte);
+        byte = (modeIn2Bytes & 0x00FF);
+        mScenarioData.push_back(byte);
+
+        this->addMessageToQueue(SetCurrentScenario, &mScenarioData, SetCurrentScenarioAck);
+        this->addMessageToQueue(ReqAvailableScenarios, NULL, AvailableScenarios);
+        this->addMessageToQueue(ReqCurrentScenario, NULL, ReqCurrentScenarioAck);
+
         std::vector<unsigned char> GPSLeverArmVector;
 
         float2hexa(GPSLeverArm.x,GPSLeverArmVector);//X
@@ -260,14 +257,14 @@ bool Xsens::MTi::setSettings(outputMode mode, outputSettings settings, Scenario 
         float2hexa(GPSLeverArm.z,GPSLeverArmVector);//Z
         this->addMessageToQueue(SetLeverArmGps, &GPSLeverArmVector, SetLeverArmGpsAck);
         this->addMessageToQueue(ReqLeverArmGps, NULL, ReqLeverArmGpsAck);
+        this->addMessageToQueue(ReqCurrentScenario, NULL, ReqCurrentScenarioAck);
     }
 
 
     this->addMessageToQueue(ReqOutputMode, NULL, ReqOutputModeAck);
     this->addMessageToQueue(ReqOutputSettings, NULL, ReqOutputSettingsAck);
-    this->addMessageToQueue(ReqCurrentScenario, NULL, ReqCurrentScenarioAck);
-    this->addMessageToQueue(GoToMeasurement, NULL, GoToMeasurementAck);
 
+    this->addMessageToQueue(GoToMeasurement, NULL, GoToMeasurementAck);
     bool result =  this->waitForQueueToFinish(timeout);
 
 
