@@ -155,6 +155,21 @@ bool Xsens::MTi::isMtiG()
 
 /**
  * @brief
+ * Check if the power‐up self test completed successfully
+ * @return bool
+ */
+bool Xsens::MTi::isSelfTestCompleted()
+{
+    if(isMtiG())
+    {
+        return mStatus & SELF_TEST;
+    }
+    else
+        return true;
+}
+
+/**
+ * @brief
  * Set the configuration of the xsens:
  *  - outputMode
  *  - outputSettings
@@ -706,7 +721,7 @@ void Xsens::MTi::manageIncomingData(std::vector<unsigned char> * incomingData, b
         }
         if(output_mode.calibratedData == true)
         {
-            if(mStatus & SELF_TEST)
+            if(isSelfTestCompleted())
             {
                 for(int i=0 ; i<numOfBytes ; i++) floatBuffer[i] = data[index+i];
                 accX = hexa2float(floatBuffer);
@@ -744,7 +759,7 @@ void Xsens::MTi::manageIncomingData(std::vector<unsigned char> * incomingData, b
 
             if(output_settings.orientationMode == Quaternion)
             {
-                if(mStatus & SELF_TEST)
+                if(isSelfTestCompleted())
                 {
                     for(int i=0 ; i<numOfBytes ; i++) floatBuffer[i] = data[index+i];
                     q0 = hexa2float(floatBuffer);
@@ -764,7 +779,7 @@ void Xsens::MTi::manageIncomingData(std::vector<unsigned char> * incomingData, b
             }
             if(output_settings.orientationMode == EulerAngles)
             {
-                if(mStatus & SELF_TEST)
+                if(isSelfTestCompleted())
                 {
                     for(int i=0 ; i<numOfBytes ; i++) floatBuffer[i] = data[index+i];
                     eroll = hexa2float(floatBuffer);

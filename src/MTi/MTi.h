@@ -236,6 +236,7 @@ private:
     void serialPortReadData(char * data, int length);
     void manageIncomingData(std::vector<unsigned char> * data, bool dataIsExtended);
     bool isMtiG();
+    bool isSelfTestCompleted();
     void fillQuaternionWithOutputSettings(double& x, double& y, double& z, double& w );
 };
 }
