@@ -981,20 +981,20 @@ nav_msgs::Odometry Xsens::MTi::fillOdometryMessage(const tf::TransformListener& 
     {
 
         try {
-            geometry_msgs::QuaternionStamped qt_orig;
-            qt_orig.header.frame_id = mFrameID;
-            qt_orig.header.stamp = now;
+            //geometry_msgs::QuaternionStamped qt_orig;
+            qt.header.frame_id = mFrameID;
+            qt.header.stamp = now;
 
-            qt_orig.quaternion.x = quaternionX;
-            qt_orig.quaternion.y = quaternionY;
-            qt_orig.quaternion.z = quaternionZ;
-            qt_orig.quaternion.w = quaternionW;
+            qt.quaternion.x = quaternionX;
+            qt.quaternion.y = quaternionY;
+            qt.quaternion.z = quaternionZ;
+            qt.quaternion.w = quaternionW;
 
 
-            if(listener.canTransform(BASE_LINK_FRAME_ID, mFrameID, now))
-            {
-                listener.transformQuaternion(BASE_LINK_FRAME_ID, qt_orig, qt);
-            }
+            //if(listener.canTransform(BASE_LINK_FRAME_ID, mFrameID, now))
+            //{
+            //    listener.transformQuaternion(BASE_LINK_FRAME_ID, qt_orig, qt);
+            //}
         } catch (tf::TransformException &ex) {
 
             ROS_ERROR("%s", ex.what());
@@ -1041,12 +1041,18 @@ nav_msgs::Odometry Xsens::MTi::fillOdometryMessage(const tf::TransformListener& 
         odom_msg.pose.pose.orientation = qt.quaternion;
 
         //set the velocity
-        odom_msg.twist.twist.linear.x = velocity_x();
-        odom_msg.twist.twist.linear.y = velocity_y();
-        odom_msg.twist.twist.linear.z = velocity_z();
+        tf::Transform orientation(tf::Quaternion(qt.quaternion.x, qt.quaternion.y, qt.quaternion.z, qt.quaternion.w));
+        tf::Vector3 vel(velocity_x(), velocity_y(), velocity_z());
+
+        vel = orientation.inverse() * vel;
+        odom_msg.twist.twist.linear.x = vel.x();
+        odom_msg.twist.twist.linear.y = vel.y();
+        odom_msg.twist.twist.linear.z = vel.z();
+
         odom_msg.twist.twist.angular.x = gyroscope_x();
         odom_msg.twist.twist.angular.y = gyroscope_y();
         odom_msg.twist.twist.angular.z = gyroscope_z();
+
     }
 
     return odom_msg;
@@ -1066,6 +1072,7 @@ sensor_msgs::Imu Xsens::MTi::fillImuMessage(const ros::Time &now)
     imu_msg.header.frame_id = mFrameID.c_str();
 
     fillQuaternionWithOutputSettings(imu_msg.orientation.x,imu_msg.orientation.y,imu_msg.orientation.z,imu_msg.orientation.w);
+
 
     imu_msg.angular_velocity.x = gyroscope_x();
     imu_msg.angular_velocity.y = gyroscope_y();
