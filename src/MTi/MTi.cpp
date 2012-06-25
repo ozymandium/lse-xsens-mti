@@ -979,26 +979,14 @@ nav_msgs::Odometry Xsens::MTi::fillOdometryMessage(const tf::TransformListener& 
 
     if( listener.frameExists(BASE_LINK_FRAME_ID) && listener.frameExists(mFrameID) && quaternionW != 0 && quaternionX != 0 && quaternionY != 0 && quaternionZ != 0)
     {
+        qt.header.frame_id = mFrameID;
+        qt.header.stamp = now;
 
-        try {
-            //geometry_msgs::QuaternionStamped qt_orig;
-            qt.header.frame_id = mFrameID;
-            qt.header.stamp = now;
+        qt.quaternion.x = quaternionX;
+        qt.quaternion.y = quaternionY;
+        qt.quaternion.z = quaternionZ;
+        qt.quaternion.w = quaternionW;
 
-            qt.quaternion.x = quaternionX;
-            qt.quaternion.y = quaternionY;
-            qt.quaternion.z = quaternionZ;
-            qt.quaternion.w = quaternionW;
-
-
-            //if(listener.canTransform(BASE_LINK_FRAME_ID, mFrameID, now))
-            //{
-            //    listener.transformQuaternion(BASE_LINK_FRAME_ID, qt_orig, qt);
-            //}
-        } catch (tf::TransformException &ex) {
-
-            ROS_ERROR("%s", ex.what());
-        }
         if((mInitialPosition.x == 0.0) && (mInitialPosition.y == 0.0) && (mInitialPosition.z == 0.0)  )
         {
             mInitialPosition.x = current_position.x;
