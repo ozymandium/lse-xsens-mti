@@ -51,8 +51,7 @@
  */
 int main(int argc, char** argv)
 {
-    ros::init(argc, argv, "mti_node");
-    ros::NodeHandle n;
+    ros::init(argc, argv, "mti_node");    
     ros::NodeHandle pn("~");
 
     // Params
@@ -105,17 +104,19 @@ int main(int argc, char** argv)
     }
     ROS_INFO("MTi -- Successfully connected to the MTi!");
 
-
-    if(!mti->setSettings(outputMode, outputSettings, scenario, frame_id, GPS_lever_arm, 1000))
+    std::string prefix = "";
+    pn.getParamCached("tf_prefix",prefix);
+    ROS_INFO("tf_prefix: %s",prefix.c_str());
+    if(!mti->setSettings(outputMode, outputSettings, scenario, prefix, frame_id, GPS_lever_arm, 1000))
     {
         ROS_FATAL("MTi -- Unable to set the output mode and settings.");
         ROS_BREAK();
     }
     ROS_INFO("MTi -- Setup complete! Initiating data streaming...");
 
-    ros::Publisher mti_pub = n.advertise<sensor_msgs::Imu>("imu/data", 10);
-    ros::Publisher navsat_pub = n.advertise<sensor_msgs::NavSatFix>("fix", 10);
-    ros::Publisher odomPub = n.advertise<nav_msgs::Odometry>("odom",10);
+    ros::Publisher mti_pub = pn.advertise<sensor_msgs::Imu>("imu/data", 10);
+    ros::Publisher navsat_pub = pn.advertise<sensor_msgs::NavSatFix>("fix", 10);
+    ros::Publisher odomPub = pn.advertise<nav_msgs::Odometry>("odom",10);
 
     tf::TransformBroadcaster odom_broadcaster;
     tf::TransformListener listener;

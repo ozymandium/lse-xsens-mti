@@ -64,7 +64,7 @@ static const unsigned char GPS_FIX   = 0x04; /**< Satellite is detected and data
 static const int ONE_BYTE = 1;
 static const std::string IMU_FRAME_ID = "/base_imu";
 static const std::string BASE_LINK_FRAME_ID = "/base_link";
-static const std::string ODOMETRY_FRAME_ID = "odom";
+static const std::string ODOMETRY_FRAME_ID = "/odom";
 
 
 typedef enum _Scenario
@@ -122,7 +122,7 @@ public:
 
     } Position;
 
-    bool setSettings(outputMode mode, outputSettings settings, Scenario scenario, const std::string& frameID, const Position& GPSLeverArm, int timeout);
+    bool setSettings(outputMode mode, outputSettings settings, Scenario scenario, const std::string& rosNamespace, const std::string& frameID, const Position& GPSLeverArm, int timeout);
 
     bool openPort(char * name, int baudrate);
     bool closePort();
@@ -187,6 +187,7 @@ private:
     Scenario mScenario;
 
     std::string mFrameID;
+    std::string mRosNamespace;
 
 
     // To manage incoming packages
@@ -205,6 +206,10 @@ private:
 
 
     Position mInitialPosition;
+
+    tf::TransformListener listener;
+     geometry_msgs::PoseStamped source_pose;
+     geometry_msgs::PoseStamped target_pose;
 
     // ******* MTi Data *******
     float accX, accY, accZ;

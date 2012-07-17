@@ -1,6 +1,6 @@
 <launch>
 
-<node pkg="tf" type="static_transform_publisher" name="xsens_broadcaster_base" args="-3.7 0 0.8 0 0 0  base_link base_imu 100" /> 
+<node pkg="tf" type="static_transform_publisher" name="xsens_broadcaster_base" args="-3.7 0 0.8 -0.15 0 0 base_link base_imu 100" /> 
 
 <node ns="lse_xsens_mti" pkg="lse_xsens_mti" type="mti_node" name="xsens">
 <!-- port configuration -->

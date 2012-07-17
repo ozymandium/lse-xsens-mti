@@ -183,9 +183,10 @@ bool Xsens::MTi::isSelfTestCompleted()
  * @param timeout
  * @return bool
  */
-bool Xsens::MTi::setSettings(outputMode mode, outputSettings settings, Scenario scenario, const std::string& frameID, const Position& GPSLeverArm, int timeout)
+bool Xsens::MTi::setSettings(outputMode mode, outputSettings settings, Scenario scenario, const std::string& rosNamespace, const std::string& frameID, const Position& GPSLeverArm, int timeout)
 {
-    mFrameID = frameID;
+    mRosNamespace =  rosNamespace.empty() == true ? "" : "/" + rosNamespace;
+    mFrameID = mRosNamespace + frameID;
     this->outputModeData.clear();
     this->outputSettingsData.clear();
 
@@ -977,7 +978,7 @@ nav_msgs::Odometry Xsens::MTi::fillOdometryMessage(const tf::TransformListener& 
     double quaternionW, quaternionX, quaternionY, quaternionZ;
     fillQuaternionWithOutputSettings(quaternionX,quaternionY,quaternionZ,quaternionW);
 
-    if( listener.frameExists(BASE_LINK_FRAME_ID) && listener.frameExists(mFrameID) && quaternionW != 0 && quaternionX != 0 && quaternionY != 0 && quaternionZ != 0)
+    if( listener.frameExists(mRosNamespace + BASE_LINK_FRAME_ID) && listener.frameExists(mFrameID) && quaternionW != 0 && quaternionX != 0 && quaternionY != 0 && quaternionZ != 0)
     {
         qt.header.frame_id = mFrameID;
         qt.header.stamp = now;
@@ -999,37 +1000,40 @@ nav_msgs::Odometry Xsens::MTi::fillOdometryMessage(const tf::TransformListener& 
         current_position.y = current_position.y - mInitialPosition.y;
         current_position.z = current_position.z - mInitialPosition.z;
 
-        //first, we'll publish the transform over tf
-        geometry_msgs::TransformStamped odom_trans;
-        odom_trans.header.stamp = now;
-        odom_trans.header.frame_id = ODOMETRY_FRAME_ID;
-        odom_trans.child_frame_id = BASE_LINK_FRAME_ID;
+        tf::StampedTransform T_base_imu;
+        try{
+            listener.lookupTransform(mRosNamespace + BASE_LINK_FRAME_ID, mFrameID,ros::Time(0), T_base_imu);
+        }
+        catch (tf::TransformException ex){
+            ROS_ERROR("%s",ex.what());
+            return odom_msg;
+        }
 
-        odom_trans.transform.translation.x = current_position.x;
-        odom_trans.transform.translation.y = current_position.y;
-        odom_trans.transform.translation.z = current_position.z;
-        odom_trans.transform.rotation = qt.quaternion;
-
-        // ROS_INFO("x: %f, y: %f, z: %f", current_position.x,current_position.y,current_position.z);
-        // ROS_INFO("QUATERNION x: %f, y: %f, z: %f, w: %f", qt.quaternion.x,qt.quaternion.y,qt.quaternion.z, qt.quaternion.w);
-
-        //send the transform
+        btTransform T_odom_imu(btQuaternion(quaternionX,quaternionY,quaternionZ,quaternionW),btVector3(current_position.x,current_position.y, current_position.z));
+        tf::StampedTransform T_odom_base_st(T_odom_imu, now, mRosNamespace + ODOMETRY_FRAME_ID, mRosNamespace + BASE_LINK_FRAME_ID);
+        T_odom_base_st *= T_base_imu.inverse();
+        geometry_msgs::TransformStamped base_to_odom_msg;
+        tf::transformStampedTFToMsg(T_odom_base_st, base_to_odom_msg);
         if(qt.quaternion.x != 0.0 && qt.quaternion.y != 0.0 && qt.quaternion.z != 0.0 && qt.quaternion.w != 0.0)
-            odom_broadcaster.sendTransform(odom_trans);
+            odom_broadcaster.sendTransform(base_to_odom_msg);
 
         //next, we'll publish the odometry message over ROS
         odom_msg.header.stamp = now;
-        odom_msg.header.frame_id = ODOMETRY_FRAME_ID;
-        odom_msg.child_frame_id = BASE_LINK_FRAME_ID;
+        odom_msg.header.frame_id = mRosNamespace + ODOMETRY_FRAME_ID;
+        odom_msg.child_frame_id = mRosNamespace + BASE_LINK_FRAME_ID;
 
         //set the position
-        odom_msg.pose.pose.position.x = current_position.x;
-        odom_msg.pose.pose.position.y = current_position.y;
-        odom_msg.pose.pose.position.z = current_position.z;
-        odom_msg.pose.pose.orientation = qt.quaternion;
+        odom_msg.pose.pose.position.x = base_to_odom_msg.transform.translation.x;
+        odom_msg.pose.pose.position.y = base_to_odom_msg.transform.translation.y;
+        odom_msg.pose.pose.position.z = base_to_odom_msg.transform.translation.z;
+        odom_msg.pose.pose.orientation.w = base_to_odom_msg.transform.rotation.w;
+        odom_msg.pose.pose.orientation.x = base_to_odom_msg.transform.rotation.x;
+        odom_msg.pose.pose.orientation.y = base_to_odom_msg.transform.rotation.y;
+        odom_msg.pose.pose.orientation.z = base_to_odom_msg.transform.rotation.z;
+
 
         //set the velocity
-        tf::Transform orientation(tf::Quaternion(qt.quaternion.x, qt.quaternion.y, qt.quaternion.z, qt.quaternion.w));
+        tf::Transform orientation(tf::Quaternion(base_to_odom_msg.transform.rotation.x, base_to_odom_msg.transform.rotation.y, base_to_odom_msg.transform.rotation.z, base_to_odom_msg.transform.rotation.w));
         tf::Vector3 vel(velocity_x(), velocity_y(), velocity_z());
 
         vel = orientation.inverse() * vel;
