@@ -1,0 +1,32 @@
+<?xml version="1.0"?>
+<package>
+  <name>lse_xsens_mti</name>
+  <version>0.0.0</version>
+  <description>
+     Xsens MTi node. The existing xsens_mti node is distributed in the form of a library and requires the MTi to be set to a determined configuration to work. We had some old code laying around so we just ported it to ROS. This sends the MTi to configuration mode at start and sets it to the propper mode of operation.
+  </description>
+  <author>Gonçalo Cabrita, Nicolas Vignard</author>
+  <maintainer email="robertgcofield@gmail.com">Robert Cofield</maintainer>
+  <license>BSD</license>
+  <url>http://ros.org/wiki/lse_xsens_mti</url>
+
+  <buildtool_depend>catkin</buildtool_depend>
+  <build_depend>gps_common</build_depend>
+  <build_depend>cereal_port</build_depend>
+  <build_depend>nav_msgs</build_depend>
+  <build_depend>roscpp</build_depend>
+  <build_depend>sensor_msgs</build_depend>
+  <build_depend>tf</build_depend>
+  <!-- <build_depend>tf2</build_depend>   -->
+  <run_depend>gps_common</run_depend>
+  <run_depend>cereal_port</run_depend>
+  <run_depend>nav_msgs</run_depend>
+  <run_depend>roscpp</run_depend>
+  <run_depend>sensor_msgs</run_depend>
+  <run_depend>tf</run_depend>
+  <!-- <run_depend>tf2</run_depend>   -->
+
+
+</package>
+
+

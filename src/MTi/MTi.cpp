@@ -1009,7 +1009,9 @@ nav_msgs::Odometry Xsens::MTi::fillOdometryMessage(const tf::TransformListener& 
             return odom_msg;
         }
 
-        btTransform T_odom_imu(btQuaternion(quaternionX,quaternionY,quaternionZ,quaternionW),btVector3(current_position.x,current_position.y, current_position.z));
+        tf::Transform T_odom_imu;
+        // tf::Transform T_odom_imu(tf::Quaternion(quaternionX,quaternionY,quaternionZ,quaternionW),
+        //                          tf::Vector3(current_position.x,current_position.y, current_position.z));
         tf::StampedTransform T_odom_base_st(T_odom_imu, now, mRosNamespace + ODOMETRY_FRAME_ID, mRosNamespace + BASE_LINK_FRAME_ID);
         T_odom_base_st *= T_base_imu.inverse();
         geometry_msgs::TransformStamped base_to_odom_msg;
