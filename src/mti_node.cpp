@@ -114,7 +114,7 @@ int main(int argc, char** argv)
     }
     ROS_INFO("MTi -- Setup complete! Initiating data streaming...");
 
-    ros::Publisher mti_pub = pn.advertise<sensor_msgs::Imu>("imu/data", 10);
+    ros::Publisher mti_pub = pn.advertise<sensor_msgs::Imu>("data", 10);
     ros::Publisher navsat_pub = pn.advertise<sensor_msgs::NavSatFix>("fix", 10);
     ros::Publisher odomPub = pn.advertise<nav_msgs::Odometry>("odom",10);
 

@@ -1,6 +1,6 @@
 <launch>
 
-<node ns="lse_xsens_mti" pkg="lse_xsens_mti" type="mti_node" name="xsens">
+<node ns="imu_torso" pkg="lse_xsens_mti" type="mti_node" name="xsens">
 <!-- port configuration -->
 <param name="port" value="/dev/ttyS0" />
 
